@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <numeric>
 #include <float.h>
-#include <math.h>
+//#include <math.h>
+#include <cmath>
 #include "avx_median.h"
 
 /* ------------------------------------------------------------------- */
@@ -152,9 +153,9 @@ public :
 	double	Interpolate(double x)
 	{
 		if (b || c)
-			return max(min((x+a)/(b*x+c), fMax), fMin);
+			return std::max(std::min((x+a)/(b*x+c), fMax), fMin);
 		else
-			return max(min(x+a, fMax), fMin);
+			return std::max(std::min(x+a, fMax), fMin);
 	};
 
 	void	Initialize(double x0, double x1, double x2, double y0, double y1, double y2)
@@ -173,8 +174,8 @@ public :
 			c = 0;
 		a = (b*x0 +c )*y0 - x0;
 
-		fMin = min(min(y0, y1), y2);
-		fMax = max(max(y0, y1), y2);
+		fMin = std::min(std::min(y0, y1), y2);
+		fMax = std::max(std::max(y0, y1), y2);
 	};
 
 	float getParameterA() const { return static_cast<float>(this->a); }
@@ -341,8 +342,8 @@ public :
 		}
 		else
 		{
-			m_fMin = min(m_fMin, fValue);
-			m_fMax = max(m_fMax, fValue);
+			m_fMin = std::min(m_fMin, fValue);
+			m_fMax = std::max(m_fMax, fValue);
 		};
 		m_lNrValues+=lNrValues;
 		m_fPowSum += (fValue*fValue)*lNrValues;
@@ -618,7 +619,7 @@ void	DetectFlatParts(std::vector<T> & vValues, double fMaximum, std::vector<CFla
 		}
 		else
 		{
-			vVariations.push_back((double)(vValues[i]-vValues[i-1])/(double)max(static_cast<T>(1), vValues[i-1])*sqrt(vValues[i]/fMaximum));
+			vVariations.push_back((double)(vValues[i]-vValues[i-1])/(double)std::max(static_cast<T>(1), vValues[i-1])*sqrt(vValues[i]/fMaximum));
 			vAbsVariations.push_back((double)(vValues[i]-vValues[i-1])/fMaximum);
 		};
 		fTotalVariation += fabs(vAbsVariations[i]);
@@ -722,7 +723,7 @@ T Minimum(std::vector<T>& values, bool ignoreZeros)
 
     for (T const& val : values)
         if (val || !ignoreZeros)
-            result = min(result, val);
+            result = std::min(result, val);
 
 	return result;
 };
@@ -762,7 +763,7 @@ double	Homogenize(std::vector<T> & vValues, double fMaximum)
 		vValues.resize(1);		vValues[0] = fMinimum;
 	};
 
-	fResult = min(1.0, max(0.0, (1.05 - fAverageVariation*10)));
+	fResult = std::min(1.0, std::max(0.0, (1.05 - fAverageVariation*10)));
 
 	return fResult;
 };
@@ -940,7 +941,7 @@ void	Homogenize2(std::vector<T> & vValues, double fMaximum)
 			if (lIndice1>=0 || lIndice2>=0)
 			{
 				// Cut at this position
-				LONG		lIndice = min(lIndice1==-1 ? 10000 : lIndice1,
+				LONG		lIndice = std::min(lIndice1==-1 ? 10000 : lIndice1,
 										  lIndice2==-1 ? 10000 : lIndice2);
 				vValues.resize(lIndice+1);
 			}
@@ -1140,7 +1141,7 @@ double AutoAdaptiveWeightedAverage(const std::vector<T> & vValues, long lIterati
 		double		fMaximum = vValues[0];
 
 		for (i = 1; i < nElements; i++)
-			fMaximum = max(fMaximum, (double)vValues[i]);
+			fMaximum = std::max(fMaximum, (double)vValues[i]);
 
 		if (fMaximum > 0)
 		{
@@ -1283,7 +1284,7 @@ private :
 				strValue = strParameters;
 
 			fValue = _ttof((LPCTSTR)strValue);	// Change _ttof to _ttof for Unicode
-			strParameters = strParameters.Right(max(0, strParameters.GetLength()-strValue.GetLength()-1));
+			strParameters = strParameters.Right(std::max(0, strParameters.GetLength()-strValue.GetLength()-1));
 			bResult = true;
 		};
 

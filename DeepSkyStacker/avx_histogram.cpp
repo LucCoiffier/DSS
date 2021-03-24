@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 #include "avx_histogram.h"
-#include "avx.h"
 #include "avx_cfa.h"
 #include <immintrin.h>
 

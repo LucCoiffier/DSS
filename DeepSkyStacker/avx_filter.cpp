@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "avx_filter.h"
-#include "avx.h"
+#include "avx_support.h"
 #include <tuple>
 
 template <>

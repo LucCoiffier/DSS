@@ -19,6 +19,7 @@
 
 #include "libraw/libraw.h"
 
+
 LARGE_INTEGER start;
 void timerstart(void) { QueryPerformanceCounter(&start); }
 float timerend()
@@ -174,338 +175,15 @@ void	PopRAWSettings()
 #include <share.h>
 #include <typeinfo>
 
-class BitMapFiller
-{
-
-private:
-	CDSSProgress *			m_pProgress;
-	bool					m_bStarted;
-	CFATYPE					m_CFAType;
-	CMemoryBitmap *			m_pBitmap;
-	DWORD					m_dwPos;
-	PixelIterator			m_PixelIt;
-	DWORD					m_dwCurrentX,
-							m_dwCurrentY;
-	BYTE *					m_pBuffer;
-	DWORD					m_dwBufferSize;
-	DWORD					m_dwBufferReadPos;
-	DWORD					m_dwBufferWritePos;
-	LONG					m_lWidth,
-							m_lHeight,
-							m_lMaxColors;
-	LONG					m_lBytePerChannel;
-	bool					m_bGrey;
-	double					m_fRedScale,
-							m_fGreenScale,
-							m_fBlueScale;
-
-private:
-	void	AdjustColor(double & fColor, double fAdjust) noexcept
-	{
-		const double	fResult = fColor * fAdjust;
-
-		fColor = min(static_cast<double>(MAXWORD - 1), fResult);
-	};
-
-	void	AddToBuffer(const void * buffer, DWORD lSize)
-	{
-		if (!m_bStarted)
-			Start();
-		ZASSERTSTATE(0 != m_lWidth);
-		ZASSERTSTATE(0 != m_lHeight);
-		ZASSERTSTATE(0 != m_lMaxColors);
-
-		if (m_lMaxColors > 255)
-			m_lBytePerChannel = 2;
-		else
-			m_lBytePerChannel = 1;
-
-		//
-		// Now process the bitmap
-		//
-		if (!m_pBuffer)
-		{
-			// Alloc the buffer
-			m_dwBufferSize = 2 * lSize;
-			ZTRACE_RUNTIME("Allocating image buffer of %d bytes", m_dwBufferSize);
-			m_pBuffer = (BYTE*)malloc(m_dwBufferSize);
-			if (nullptr == m_pBuffer)
-			{
-				ZOutOfMemory e("Could not allocate storage for image buffer");
-				ZTHROW(e);
-			}
-
-			m_dwBufferReadPos = 0;
-			m_dwBufferWritePos = 0;
-		};
-		if (lSize > m_dwBufferSize - m_dwBufferWritePos)
-		{
-			// realloc the buffer
-			ZTRACE_RUNTIME("Re-allocating image buffer to %d bytes", lSize + m_dwBufferWritePos * 2);
-			BYTE* temp = (BYTE*)realloc(m_pBuffer, lSize + m_dwBufferWritePos * 2);
-			if (nullptr == temp)
-			{
-				ZOutOfMemory e("Could not re-allocate storage for image buffer");
-				ZTHROW(e);
-			}
-
-			m_pBuffer = temp;
-			m_dwBufferSize = lSize + m_dwBufferWritePos * 2;
-		};
-
-		BYTE *				pWrite = m_pBuffer;
-		BYTE *				pRead = m_pBuffer;
-		LONG				lToRead;
-		bool				bEnd = false;
-
-		pWrite += m_dwBufferWritePos;
-		pRead += m_dwBufferReadPos;
-		memcpy(m_pBuffer, buffer, lSize);
-		m_dwBufferWritePos += lSize;
-
-		while (!bEnd)
-		{
-			bEnd = true;
-			lToRead = m_dwBufferWritePos - m_dwBufferReadPos;
-			// Read pixels
-			{
-				if (m_bGrey)
-				{
-					if (lToRead >= m_lBytePerChannel)
-					{
-						// Read gray
-						double		fGrey;
-						if (m_lBytePerChannel == 2)
-						{
-							fGrey = ((*(pRead + 0)) << 8) + (*(pRead + 1));
-							m_dwBufferReadPos += 2;
-							pRead += 2;
-						}
-						else
-						{
-							fGrey = ((*(pRead + 0)) << 8);
-							m_dwBufferReadPos++;
-							pRead++;
-						};
-
-						if (m_dwCurrentX >= m_lWidth)
-						{
-							m_dwCurrentY++;
-							m_dwCurrentX = 0;
-							m_PixelIt->Reset(0, m_dwCurrentY);
-							m_dwPos = m_dwCurrentY + 1;
-						};
-
-						switch (GetBayerColor(m_dwCurrentX, m_dwCurrentY, m_CFAType))
-						{
-						case BAYER_RED:
-							AdjustColor(fGrey, m_fRedScale);
-							break;
-						case BAYER_GREEN:
-							AdjustColor(fGrey, m_fGreenScale);
-							break;
-						case BAYER_BLUE:
-							AdjustColor(fGrey, m_fBlueScale);
-							break;
-						};
-
-						m_PixelIt->SetPixel((double)fGrey / 256.0);
-						(*m_PixelIt)++;
-						m_dwCurrentX++;
-
-						bEnd = false;
-					};
-				}
-				else
-				{
-					if (lToRead >= m_lBytePerChannel * 3)
-					{
-						// Read RGB
-						double				fRed, fGreen, fBlue;
-
-						if (m_lBytePerChannel == 2)
-						{
-							fRed = ((*(pRead + 0)) << 8) + (*(pRead + 1));
-							fGreen = ((*(pRead + 2)) << 8) + (*(pRead + 3));
-							fBlue = ((*(pRead + 4)) << 8) + (*(pRead + 5));
-							m_dwBufferReadPos += 6;
-							pRead += 6;
-						}
-						else
-						{
-							fRed = ((*(pRead + 0)) << 8);
-							fGreen = ((*(pRead + 1)) << 8);
-							fBlue = ((*(pRead + 2)) << 8);
-							m_dwBufferReadPos += 3;
-							pRead += 3;
-						};
-
-						if (m_dwCurrentX >= m_lWidth)
-						{
-							m_dwCurrentY++;
-							m_dwCurrentX = 0;
-							m_PixelIt->Reset(0, m_dwCurrentY);
-							m_dwPos = m_dwCurrentY + 1;
-						};
-
-						AdjustColor(fRed, m_fRedScale);
-						AdjustColor(fGreen, m_fGreenScale);
-						AdjustColor(fBlue, m_fBlueScale);
-
-						m_PixelIt->SetPixel(fRed / 256.0, fGreen / 256.0, fBlue / 256.0);
-						m_dwCurrentX++;
-						(*m_PixelIt)++;
-
-						bEnd = false;
-					};
-				};
-			}
-
-		};
-
-		// Adjust Buffer
-		LONG			lToMove = m_dwBufferWritePos - m_dwBufferReadPos;
-
-		if (lToMove)
-		{
-			memmove(m_pBuffer, pRead, lToMove);
-			m_dwBufferWritePos -= m_dwBufferReadPos;
-			m_dwBufferReadPos = 0;
-		}
-		else
-			m_dwBufferReadPos = m_dwBufferWritePos = 0;
-	};
-private:
-
-public:
-
-    BitMapFiller(CMemoryBitmap * pBitmap, CDSSProgress * pProgress)
-    {
-        m_pBitmap = pBitmap;
-        m_pProgress = pProgress;
-        m_bStarted = false;
-        m_fRedScale = 1.0;
-        m_fGreenScale = 1.0;
-        m_fBlueScale = 1.0;
-        m_lBytePerChannel = 2;				// Never going to handle 8 bit data !!
-        m_lHeight = 0;
-        m_lWidth = 0;
-        m_CFAType = CFATYPE_NONE;
-        m_dwPos = 0;
-        m_dwCurrentX = 0;
-        m_dwCurrentY = 0;
-        m_pBuffer = nullptr;
-        m_dwBufferSize = 0;
-        m_dwBufferReadPos = 0;
-        m_dwBufferWritePos = 0;
-        m_lMaxColors = 0;
-        m_bGrey = false;
-    }
-
-	virtual ~BitMapFiller()
-	{
-		if (m_pBuffer)
-			free(m_pBuffer);
-	};
-
-	void	SetWhiteBalance(double fRedScale, double fGreenScale, double fBlueScale) noexcept
-	{
-		m_fRedScale = fRedScale;
-		m_fGreenScale = fGreenScale;
-		m_fBlueScale = fBlueScale;
-	};
-
-	void	SetCFAType(CFATYPE CFAType) noexcept
-	{
-		m_CFAType = CFAType;
-	};
-
-	void	setGrey(bool grey) noexcept
-	{
-		m_bGrey = grey;
-	};
-
-	void	setWidth(LONG width) noexcept
-	{
-		m_lWidth = width;
-	};
-
-	void	setHeight(LONG height) noexcept
-	{
-		m_lHeight = height;
-	};
-
-	void	setMaxColors(LONG maxcolors) noexcept
-	{
-		m_lMaxColors = maxcolors;
-	};
-
-	int	Start()
-	{
-		ZFUNCTRACE_RUNTIME();
-		//
-		// Do initialisation not done by ctor
-		//
-		m_bStarted = true;
-		m_pBuffer = nullptr;
-		m_dwBufferSize = 0;
-		m_dwBufferReadPos = 0;
-		m_dwBufferWritePos = 0;
-		m_dwPos = 0;
-		m_dwCurrentX = 0;
-		m_dwCurrentY = 0;
-
-		//
-		// If the bitmap is a 16-bit grayscale bitmap, then set the CFA type
-		//
-		C16BitGrayBitmap *			pGray16Bitmap = dynamic_cast<C16BitGrayBitmap *>(m_pBitmap);
-		if (pGray16Bitmap)
-			pGray16Bitmap->SetCFAType(m_CFAType);
-		//
-		// Initialise the progress dialog
-		//
-		if (m_pProgress)
-			m_pProgress->Start2(nullptr, m_pBitmap->Height());
-
-		m_pBitmap->GetIterator(&m_PixelIt);
-
-		return 0;
-	};
-
-#if (0)
-	int	Printf(const char *format, va_list va)
-	{
-		int				nResult;
-		CString			strText;
-
-		strText.FormatV(format, va);
-		nResult = strText.GetLength();
-
-		AddToBuffer(strText.GetBuffer(10000), nResult);
-
-		if (m_pProgress)
-			m_pProgress->Progress2(nullptr, m_dwPos);
-
-		return nResult;
-	};
-#endif
-
-	size_t Write(const void *buffer, size_t size, size_t count)
-	{
-		AddToBuffer(buffer, static_cast<DWORD>(size*count));
-		if (m_pProgress)
-			m_pProgress->Progress2(nullptr, m_dwPos);
-
-		return count;
-	};
-};
+#include "BitMapFiller.h"
 
 class DSSLibRaw : public LibRaw
 {
 public:
 	DSSLibRaw() noexcept {};
 	~DSSLibRaw() {};
-	void setBitMapFiller(BitMapFiller * pFiller) noexcept
+
+	void setBitMapFiller(BitmapFillerInterface* pFiller) noexcept
 	{
 		pDSSBitMapFiller = pFiller;
 	};
@@ -523,8 +201,7 @@ protected:
 	void        write_ppm_tiff();
 
 private:
-	BitMapFiller * pDSSBitMapFiller = nullptr;
-
+	BitmapFillerInterface* pDSSBitMapFiller = nullptr;
 };
 
 #define Thread   __declspec( thread )
@@ -840,12 +517,13 @@ void CRawDecod::checkCameraSupport(const CString& strModel)
 };
 /* ------------------------------------------------------------------- */
 
+
 bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, bool bThumb)
 {
 	ZFUNCTRACE_RUNTIME();
-	bool		bResult = true;
-	BitMapFiller *		pFiller = nullptr;
-	int			ret = 0;
+
+	bool bResult = true;
+	int ret = 0;
 
 	pBitmap->Init(m_lWidth, m_lHeight);
 	pBitmap->SetISOSpeed(m_lISOSpeed);
@@ -883,6 +561,8 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 
 	do	// Do once!
 	{
+		const int numberOfProcessors = CMultitask::GetNrProcessors(false);
+
 		fBrightness = workspace.value("RawDDP/Brightness").toDouble();
 		fRedScale = workspace.value("RawDDP/RedScale").toDouble();
 		fBlueScale = workspace.value("RawDDP/BlueScale").toDouble();
@@ -950,22 +630,17 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 		//
 		// Create the class that populates the bitmap
 		//
-		pFiller = new BitMapFiller(pBitmap, pProgress);
-		pFiller->SetWhiteBalance(fRedScale, fGreenScale, fBlueScale);
+		CopyableSmartPtr<BitmapFillerInterface> pFiller = BitmapFillerInterface::makeBitmapFiller(pBitmap, pProgress, fRedScale, fGreenScale, fBlueScale);
 		// Get the Colour Filter Array type and set into the bitmap filler
 		m_CFAType = GetCurrentCFAType();
 		pFiller->SetCFAType(m_CFAType);
 
-#define RAW(row,col) \
-	raw_image[(row)*S.width+(col)]
+#define RAW(row,col) raw_image[(row) * S.width + (col)]
 
 		//
 		// Get our endian-ness so we can swap bytes if needed (always on Windows).
 		//
-		const bool littleEndian = htons(0x55aa) != 0x55aa;
-
-		unsigned short *raw_image = nullptr;
-		void * buffer = nullptr;		// Used for debugging only (memory window)
+		const bool littleEndian = htons(0x55aa) != 0x55aa; // big_endian = htons(host_byte_order)
 
 		if (!m_bColorRAW)
 		{
@@ -983,13 +658,15 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 			// 2) will be copied from the image portion of Rawdata.raw_image
 			//    excluding the frame (Top margin, Left Margin).
 			//
-			raw_image =
-				(unsigned short *)calloc(static_cast<size_t>(S.height)*static_cast<size_t>(S.width), sizeof(unsigned short));
-			if (nullptr == raw_image)
-			{
+			std::vector<std::uint16_t> dataBuffer;
+			try {
+				dataBuffer.resize(static_cast<size_t>(S.height) * static_cast<size_t>(S.width), 0);
+			} catch (...) {
 				ZOutOfMemory e("Could not allocate storage for RAW image");
 				ZTHROW(e);
 			}
+			std::uint16_t* raw_image = dataBuffer.data();
+			void* buffer = nullptr; // Used for debugging only (memory window)
 
 			const int fuji_width = rawProcessor.is_fuji_rotated();
 			const unsigned fuji_layout = rawProcessor.get_fuji_layout();
@@ -998,9 +675,8 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 			if (fuji_width)   // Are we processing a Fuji Super-CCD image?
 			{
 				ZTRACE_RUNTIME("Converting Fujitsu Super-CCD image to regular raw image");
-#if defined(_OPENMP)
-#pragma omp parallel for default(none)
-#endif
+
+#pragma omp parallel for default(none) if(numberOfProcessors > 1)
 				for (int row = 0; row < S.raw_height - S.top_margin * 2; row++)
 				{
 					for (int col = 0; col < fuji_width << int(!fuji_layout); col++)
@@ -1018,8 +694,7 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 							c = row + ((col + 1) >> 1);
 						}
 						if (r < S.height && c < S.width)
-							RAW(r, c)
-							= RawData.raw_image[(row + S.top_margin)*S.raw_pitch / 2 + (col + S.left_margin)];
+							RAW(r, c) = RawData.raw_image[(row + S.top_margin) * S.raw_pitch / 2 + (col + S.left_margin)];
 					}
 				}
 			}
@@ -1034,15 +709,13 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 				// the frame
 				//
 				buffer = raw_image;
-#if defined(_OPENMP)
-#pragma omp parallel for default(none)
-#endif
+
+#pragma omp parallel for default(none) if(numberOfProcessors > 1)
 				for (int row = 0; row < S.height; row++)
 				{
 					for (int col = 0; col < S.width; col++)
 					{
-						RAW(row, col)
-							= RawData.raw_image[(row + S.top_margin)*S.raw_pitch / 2 + (col + S.left_margin)];
+						RAW(row, col) = RawData.raw_image[(row + S.top_margin) * S.raw_pitch / 2 + (col + S.left_margin)];
 					}
 				}
 			}
@@ -1099,60 +772,49 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 				C.cblack[4], C.cblack[5],
 				C.cblack[6], C.cblack[7], C.cblack[8], C.cblack[9]);
 
+			const int size = static_cast<int>(S.height) * static_cast<int>(S.width);
+
 			if (!rawProcessor.is_phaseone_compressed() &&
 				(C.cblack[0] || C.cblack[1] || C.cblack[2] || C.cblack[3] || (C.cblack[4] && C.cblack[5])))
 			{
-				int cblk[4], i;
-				for (i = 0; i < 4; i++)
+				int cblk[4];
+				for (int i = 0; i < 4; i++)
 					cblk[i] = C.cblack[i];
 
-				const int size = S.height * S.width;
 				int dmax = 0;	// Maximum value of pixels in entire image.
 				int lmax = 0;	// Local (or Loop) maximum value found in the 'for' loops below. For OMP.
 				if (C.cblack[4] && C.cblack[5])
 				{
-#if defined(_OPENMP)
-#pragma omp parallel default(none) shared(dmax) firstprivate(lmax)
+#pragma omp parallel default(none) shared(dmax) firstprivate(lmax) if(numberOfProcessors > 1)
 					{
 #pragma omp for
-#endif
-						for (i = 0; i < size; i++)
+						for (int i = 0; i < size; i++)
 						{
 							int val = raw_image[i];
 							val -= C.cblack[6 + i / S.width % C.cblack[4] * C.cblack[5] + i % S.width % C.cblack[5]];
 							val -= cblk[i & 3];
-							raw_image[i] = max(0, min(val, 65535));
-							lmax = val > lmax ? val : lmax;
+							raw_image[i] = static_cast<std::uint16_t>(std::clamp(val, 0, 65535));
+							lmax = std::max(val, lmax);
 						}
-#if defined(_OPENMP)
 #pragma omp critical
-#endif
-						dmax = lmax > dmax ? lmax : dmax; // For non-OMP case this is equal to dmax = lmax.
-#if defined(_OPENMP)
+						dmax = std::max(lmax, dmax); // For non-OMP case this is equal to dmax = lmax.
 					}
-#endif
 				}
 				else
 				{
-#if defined(_OPENMP)
-#pragma omp parallel default(none) shared(dmax) firstprivate(lmax)
+#pragma omp parallel default(none) shared(dmax) firstprivate(lmax) if(numberOfProcessors > 1)
 					{
 #pragma omp for
-#endif
-						for (i = 0; i < size; i++)
+						for (int i = 0; i < size; i++)
 						{
 							int val = raw_image[i];
 							val -= cblk[i & 3];
-							raw_image[i] = max(0, min(val, 65535));
-							lmax = val > lmax ? val : lmax;
+							raw_image[i] = static_cast<std::uint16_t>(std::clamp(val, 0, 65535));
+							lmax = std::max(val, lmax);
 						}
-#if defined(_OPENMP)
 #pragma omp critical
-#endif
-						dmax = lmax > dmax ? lmax : dmax; // For non-OMP case this is equal to dmax = lmax.
-#if defined(_OPENMP)
+						dmax = std::max(lmax, dmax); // For non-OMP case this is equal to dmax = lmax.
 					}
-#endif
 				}
 				C.data_maximum = dmax & 0xffff;
 				C.maximum -= C.black;
@@ -1165,21 +827,15 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 				// only calculate channel maximum;
 				int dmax = 0;	// Maximum value of pixels in entire image.
 				int lmax = 0;	// Local (or Loop) maximum value found in the 'for' loop below. For OMP.
-#if defined(_OPENMP)
-#pragma omp parallel default(none) shared(dmax) firstprivate(lmax)
+#pragma omp parallel default(none) shared(dmax) firstprivate(lmax) if(numberOfProcessors > 1)
 				{
 #pragma omp for
-#endif
-					for (int i = 0; i < S.height * S.width; i++)
+					for (int i = 0; i < size; i++)
 						if (lmax < raw_image[i])
 							lmax = raw_image[i];
-#if defined(_OPENMP)
 #pragma omp critical
-#endif
-					dmax = lmax > dmax ? lmax : dmax; // For non-OMP case this is equal to dmax = lmax.
-#if defined(_OPENMP)
+					dmax = std::max(lmax, dmax); // For non-OMP case this is equal to dmax = lmax.
 				}
-#endif
 
 				C.data_maximum = dmax;
 			}
@@ -1215,61 +871,45 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 			// than the saturation level).
 			//
 
-			double dmin, dmax; int c = 0;
-
-			for (dmin = DBL_MAX, dmax = c = 0; c < 4; c++)
-			{
-				if (dmin > pre_mul[c])
-					dmin = pre_mul[c];
-				if (dmax < pre_mul[c])
-					dmax = pre_mul[c];
-			}
+			const double dmax = *std::max_element(&pre_mul[0], &pre_mul[4]);
+			const double dmin = *std::min_element(&pre_mul[0], &pre_mul[4]);
 
 			float scale_mul[4];
-
-			for (c = 0; c < 4; c++)	scale_mul[c] = (pre_mul[c] /= dmin) * (65535.0 / C.maximum);
+			for (int c = 0; c < 4; c++)
+				scale_mul[c] = (pre_mul[c] /= dmin) * (65535.0 / C.maximum);
 
 			ZTRACE_RUNTIME("Maximum value pixel has value %d", C.data_maximum);
 			ZTRACE_RUNTIME("Saturation level is %d", C.maximum);
 			ZTRACE_RUNTIME("Applying linear stretch to raw data.  Scale values %f, %f, %f, %f",
 				scale_mul[0], scale_mul[1], scale_mul[2], scale_mul[3]);
 
-#if defined(_OPENMP)
-#pragma omp parallel for default(none) schedule(dynamic, 10) // No OPENMP: 240ms, with OPENMP: 92ms, schedule static: 78ms, schedule dynamic: 35ms
-#endif
+#pragma omp parallel for default(none) schedule(dynamic, 10) if(numberOfProcessors > 1) // No OPENMP: 240ms, with OPENMP: 92ms, schedule static: 78ms, schedule dynamic: 35ms
 			for (int row = 0; row < S.height; row++)
 			{
 				for (int col = 0; col < S.width; col++)
 				{
 					// What colour will this pixel become
 					const int colour = rawProcessor.COLOR(row, col);
-
-					const float val = scale_mul[colour] *
-						(float)(RAW(row, col));
-					RAW(row, col) = max(0, min(int(val), 65535));
+					const float val = scale_mul[colour] * static_cast<float>(RAW(row, col));
+					RAW(row, col) = static_cast<std::uint16_t>(std::clamp(static_cast<int>(val), 0, 65535));
 				}
 			}
 
 			// Convert raw data to big-endian
 			if (littleEndian)
-#if defined(_OPENMP)
-#pragma omp parallel for default(none) schedule(dynamic, 1000)
-				for (int i = 0; i < S.height * S.width; i++)
+#pragma omp parallel for default(none) schedule(dynamic, 1000) if(numberOfProcessors > 1)
+				for (int i = 0; i < size; i++)
 				{
 					raw_image[i] = _byteswap_ushort(raw_image[i]);
 				}
-#else
-				_swab(
-					(char*)(raw_image),
-					(char*)(raw_image),
-					S.height*S.width*sizeof(unsigned short));		// Use number of rows times row width in BYTES!!
-#endif
 
-			for (int row = 0; row < S.height; row++)
+			const int imageWidth = S.width;
+			const int imageHeight = S.height;
+#pragma omp parallel for default(none) schedule(static) firstprivate(pFiller) if(numberOfProcessors > 1 && pFiller->isThreadSafe())
+			for (int row = 0; row < imageHeight; ++row)
 			{
-				buffer = &RAW(row, 0);
 				// Write raw pixel data into our private bitmap format
-				pFiller->Write(buffer, sizeof(unsigned short), S.width);
+				pFiller->Write(&raw_image[row * imageWidth], sizeof(unsigned short), imageWidth, row); // Gray, 16 bits per pixel.
 			}
 		}
 		else
@@ -1284,7 +924,8 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 				if (LIBRAW_FATAL_ERROR(ret))
 					bResult = false;
 			}
-			if (!bResult) break;
+			if (!bResult)
+				break;
 
 			ZTRACE_RUNTIME("Processing Foveon or Fuji X-Trans raw image data");
 			//
@@ -1293,7 +934,7 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 			// Set up the intercept code to write the image data to our bitmap instead of
 			// to an external file, and invoke the overridden dcraw_ppm_tiff_writer()
 			//
-			rawProcessor.setBitMapFiller(pFiller);
+			rawProcessor.setBitMapFiller(pFiller.get());
 			if (LIBRAW_SUCCESS != (ret = rawProcessor.dcraw_ppm_tiff_writer("")))
 			{
 				bResult = false;
@@ -1301,20 +942,10 @@ bool CRawDecod::LoadRawFile(CMemoryBitmap * pBitmap, CDSSProgress * pProgress, b
 			}
 		}
 #undef RAW
-		//
-		// If we allocated memory for an image, release it.
-		if (nullptr != raw_image)
-		{
-			free(raw_image); raw_image = nullptr;
-		}
 
 	} while (0);
 
 	g_Progress = nullptr;
-
-	if (pFiller)
-		delete pFiller;
-	pFiller = nullptr;
 
 	return bResult;
 };
@@ -1565,19 +1196,23 @@ void DSSLibRaw::write_ppm_tiff()
 	soff = flip_index(0, 0);
 	cstep = flip_index(0, 1) - soff;
 	rstep = flip_index(1, 0) - flip_index(0, width);
-	for (row = 0; row < height; row++, soff += rstep) {
+	for (row = 0; row < height; row++, soff += rstep)
+	{
 		for (col = 0; col < width; col++, soff += cstep)
+		{
 			if (output_bps == 8)
 				FORCC ppm[col*colors + c] = curve[image[soff][c]] >> 8;
-			else FORCC ppm2[col*colors + c] = curve[image[soff][c]];
-			if (output_bps == 16 && !output_tiff && htons(0x55aa) != 0x55aa)
-				_swab((char*)ppm2, (char*)ppm2, width*colors * 2);
+			else
+				FORCC ppm2[col*colors + c] = curve[image[soff][c]];
+		}
+		if (output_bps == 16 && !output_tiff && htons(0x55aa) != 0x55aa)
+			_swab((char*)ppm2, (char*)ppm2, width*colors * 2);
 
-			//
-			// Instead of writing the bitmap data to an output file
-			// send it to our Bitmap loader class
-			//
-			pDSSBitMapFiller->Write(ppm, colors*output_bps / 8, width);
+		//
+		// Instead of writing the bitmap data to an output file
+		// send it to our Bitmap loader class
+		//
+		pDSSBitMapFiller->Write(ppm, colors*output_bps / 8, width, row); // Gray or color, 8 or 16 bits per sample.
 	}
 	free(ppm);
 }

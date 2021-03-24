@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "avx_cfa.h"
-#include "avx.h"
+#include "avx_support.h"
 #include <immintrin.h>
 
 AvxCfaProcessing::AvxCfaProcessing(const size_t lineStart, const size_t lineEnd, CMemoryBitmap& inputbm) :
@@ -16,7 +16,7 @@ AvxCfaProcessing::AvxCfaProcessing(const size_t lineStart, const size_t lineEnd,
 void AvxCfaProcessing::init(const size_t lineStart, const size_t lineEnd) // You should be sure that lineEnd >= lineStart!
 {
 	const size_t height = lineEnd - lineStart;
-	vectorsPerLine = AvxSupport::numberOfAvxVectors<sizeof(WORD)>(inputBitmap.Width());
+	vectorsPerLine = AvxSupport::numberOfAvxVectors<WORD, VectorElementType>(inputBitmap.Width());
 	const size_t nrVectors = vectorsPerLine * height;
 	if (nrVectors != 0 && AvxSupport{ inputBitmap }.isMonochromeCfaBitmapOfType<WORD>())
 	{

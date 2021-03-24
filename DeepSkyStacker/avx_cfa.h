@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BitmapExt.h"
+#include "BitmapBase.h"
 #include <vector>
 
 class AvxCfaProcessing

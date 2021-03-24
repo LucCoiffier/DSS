@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "avx_luminance.h"
 #include "avx_cfa.h"
-#include "avx.h"
+#include "avx_support.h"
 
 AvxLuminance::AvxLuminance(CMemoryBitmap& inputbm, CMemoryBitmap& outbm) noexcept :
 	inputBitmap{ inputbm },

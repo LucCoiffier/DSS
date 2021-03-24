@@ -1,7 +1,6 @@
 #ifndef _MULTIBITMAPPROCESS_H__
 #define _MULTIBITMAPPROCESS_H__
 
-#include "BitmapExt.h"
 
 class CBitmapPart
 {

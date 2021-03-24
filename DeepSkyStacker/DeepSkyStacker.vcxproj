@@ -238,6 +238,9 @@ $(QtToolsPath)\windeployqt --pdb --debug $(TargetPath)</Command>
     <ClCompile Include="avx_avg.cpp">
       <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
+    <ClCompile Include="avx_bitmap_filler.cpp">
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
     <ClCompile Include="avx_cfa.cpp">
       <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
@@ -256,6 +259,7 @@ $(QtToolsPath)\windeployqt --pdb --debug $(TargetPath)</Command>
     <ClCompile Include="avx_output.cpp">
       <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
+    <ClCompile Include="avx_support.cpp" />
     <ClCompile Include="BackgroundCalibration.cpp" />
     <ClCompile Include="BackgroundLoading.cpp" />
     <ClCompile Include="BackgroundOptions.cpp">
@@ -264,6 +268,7 @@ $(QtToolsPath)\windeployqt --pdb --debug $(TargetPath)</Command>
     </ClCompile>
     <ClCompile Include="BatchStacking.cpp" />
     <ClCompile Include="BitmapExt.cpp" />
+    <ClCompile Include="BitMapFiller.cpp" />
     <ClCompile Include="ChannelAlign.cpp" />
     <ClCompile Include="CheckAbove.cpp" />
     <ClCompile Include="CometStacking.cpp">
@@ -441,6 +446,7 @@ $(QtToolsPath)\windeployqt --pdb --debug $(TargetPath)</Command>
     <ClInclude Include="AskRegistering.h" />
     <ClInclude Include="avx.h" />
     <ClInclude Include="avx_avg.h" />
+    <ClInclude Include="avx_bitmap_filler.h" />
     <ClInclude Include="avx_cfa.h" />
     <ClInclude Include="avx_entropy.h" />
     <ClInclude Include="avx_filter.h" />
@@ -448,12 +454,15 @@ $(QtToolsPath)\windeployqt --pdb --debug $(TargetPath)</Command>
     <ClInclude Include="avx_luminance.h" />
     <ClInclude Include="avx_median.h" />
     <ClInclude Include="avx_output.h" />
+    <ClInclude Include="avx_support.h" />
     <ClInclude Include="BackgroundCalibration.h" />
     <ClInclude Include="BackgroundLoading.h" />
     <QtMoc Include="BackgroundOptions.h" />
     <ClInclude Include="BatchStacking.h" />
     <ClInclude Include="BezierAdjust.h" />
+    <ClInclude Include="BitmapBase.h" />
     <ClInclude Include="BitmapExt.h" />
+    <ClInclude Include="BitMapFiller.h" />
     <ClInclude Include="ChannelAlign.h" />
     <ClInclude Include="CheckAbove.h" />
     <QtMoc Include="CometStacking.h" />
@@ -515,6 +524,7 @@ $(QtToolsPath)\windeployqt --pdb --debug $(TargetPath)</Command>
     <QtMoc Include="qwinhost.h" />
     <ClInclude Include="RAWUtils.h" />
     <QtMoc Include="RecommendedSettings.h" />
+    <ClInclude Include="RefCount.h" />
     <ClInclude Include="RegisterEngine.h" />
     <QtMoc Include="RegisterSettings.h" />
     <ClInclude Include="Resource.h" />

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "BitmapExt.h"
-#include "avx.h" 
+#include "avx_support.h" 
 #include <vector>
 
 class AvxHistogram

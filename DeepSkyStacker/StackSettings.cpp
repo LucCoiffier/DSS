@@ -26,7 +26,7 @@ extern bool		g_bShowRefStars;
 
 #include "StackSettings.h"
 #include "ui/ui_StackSettings.h"
-#include "avx.h"
+#include "avx_support.h"
 
 
 StackSettings::StackSettings(QWidget *parent) :

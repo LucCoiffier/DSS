@@ -134,6 +134,4 @@ typedef enum FITSFORMAT
 #define DSSFILEDECODING 1
 #endif
 
-#include "SmartPtr.h"
-
 #endif

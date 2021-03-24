@@ -1,6 +1,6 @@
 #include "StdAfx.h" 
 #include "avx_entropy.h" 
-#include "avx.h" 
+#include "avx_support.h" 
 #include "avx_cfa.h" 
 #include "avx_histogram.h" 
 #include <immintrin.h> 
@@ -16,7 +16,8 @@ AvxEntropy::AvxEntropy(CMemoryBitmap& inputbm, const CEntropyInfo& entrinfo, CMe
 	{
 		const size_t width = pEntropyCoverage->Width();
 		const size_t height = pEntropyCoverage->Height();
-		const size_t nrVectors = AvxSupport::numberOfAvxVectors<sizeof(float)>(width);
+		static_assert(std::is_same_v<EntropyLayerVectorType::value_type, __m256> && std::is_same_v<EntropyVectorType::value_type, float>);
+		const size_t nrVectors = AvxSupport::numberOfAvxVectors<float, __m256>(width);
 		redEntropyLayer.resize(height * nrVectors);
 		if (AvxSupport{ *pEntropyCoverage }.isColorBitmap())
 		{

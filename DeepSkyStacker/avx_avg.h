@@ -3,7 +3,7 @@
 #include "PixelTransform.h"
 #include "StackingTasks.h"
 #include "BackgroundCalibration.h"
-#include "BitmapExt.h"
+#include "BitmapBase.h"
 #include "avx_entropy.h"
 
 

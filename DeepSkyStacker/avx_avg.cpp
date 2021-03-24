@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "avx_avg.h"
-#include "avx.h"
+#include "avx_support.h"
 #include <immintrin.h>
 
 AvxAccumulation::AvxAccumulation(const CRect& resultRect, const CTaskInfo& tInfo, CMemoryBitmap& tempbm, CMemoryBitmap& outbm, AvxEntropy& entroinfo) noexcept :

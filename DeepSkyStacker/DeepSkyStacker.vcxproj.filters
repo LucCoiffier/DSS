@@ -369,6 +369,15 @@
     <ClCompile Include="avx_entropy.cpp">
       <Filter>Kernel</Filter>
     </ClCompile>
+    <ClCompile Include="avx_support.cpp">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="avx_bitmap_filler.cpp">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="BitMapFiller.cpp">
+      <Filter>Kernel</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DeepSkyStacker.rc">
@@ -743,6 +752,21 @@
       <Filter>Kernel</Filter>
     </ClInclude>
     <ClInclude Include="avx_entropy.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="BitmapBase.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="RefCount.h">
+      <Filter>Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="avx_support.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="BitMapFiller.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="avx_bitmap_filler.h">
       <Filter>Kernel</Filter>
     </ClInclude>
   </ItemGroup>

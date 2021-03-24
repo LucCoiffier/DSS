@@ -1,5 +1,5 @@
 #include <stdafx.h>
-#include "BitmapExt.h"
+#include "BitmapBase.h"
 #include "DSSTools.h"
 #include "MultiBitmapProcess.h"
 #include "StackingTasks.h"

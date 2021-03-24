@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "avx_output.h"
-#include "avx.h"
+#include "avx_support.h"
 #include "avx_median.h"
 #include <immintrin.h>
 

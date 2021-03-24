@@ -1,6 +1,6 @@
 #pragma once 
 
-#include "BitmapExt.h" 
+#include "BitmapBase.h" 
 #include "EntropyInfo.h"
 #include <vector>
 
